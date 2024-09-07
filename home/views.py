@@ -4,12 +4,17 @@ from django.contrib import messages
 from .models import Produtos, Carrinho, ItemCarrinho, Pedido, ItemPedido
 from django.http import JsonResponse
 from django.utils import timezone
-
+from django.dispatch import receiver
+from django.contrib.auth.signals import user_logged_in
 
 def home(request):
     produtos = Produtos.objects.all()
     return render(request, 'index.html', {'produtos': produtos})
 
+
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from .models import Produtos, Carrinho, ItemCarrinho
 
 def adicionar_ao_carrinho(request):
     if request.method == 'POST':
@@ -19,23 +24,45 @@ def adicionar_ao_carrinho(request):
         # Obtém o produto selecionado
         produto = get_object_or_404(Produtos, id=produto_id)
         preco = produto.preco
-        usuario = request.user
 
-        # Obtém ou cria um carrinho para o usuário
-        carrinho, criado = Carrinho.objects.get_or_create(cliente_id=usuario)
-        # Verifica se o item já está no carrinho
-        item, criado = ItemCarrinho.objects.get_or_create(
-            carrinho_id=carrinho,
-            produto_id=produto,
-            defaults={'quantidade': quantidade, 'preco': preco},
-            preco_total = preco * quantidade
-        )
+        # Verifica se o usuário está logado
+        if request.user.is_authenticated:
+            # Se o usuário está logado, utiliza o carrinho associado ao usuário
+            usuario = request.user
+            carrinho, criado = Carrinho.objects.get_or_create(cliente_id=usuario)
+        else:
+            # Se o usuário não está logado, utiliza a sessão para armazenar o carrinho
+            carrinho = request.session.get('carrinho', {})
 
-        if not criado:
-            # Se o item já existia, atualiza a quantidade
-            item.quantidade += quantidade
-            item.preco_total = item.preco * item.quantidade
-            item.save()
+            # Verifica se o produto já está no carrinho
+            if str(produto_id) in carrinho:
+                carrinho[str(produto_id)]['quantidade'] += quantidade
+                carrinho[str(produto_id)]['preco_total'] = carrinho[str(produto_id)]['preco'] * carrinho[str(produto_id)]['quantidade']
+            else:
+                carrinho[str(produto_id)] = {
+                    'produto_id': produto_id,
+                    'nome': produto.nome,
+                    'preco': float(preco),  # Convertendo para float para serializar o JSON
+                    'quantidade': quantidade,
+                    'preco_total': float(preco * quantidade)
+                }
+
+            # Armazena o carrinho atualizado na sessão
+            request.session['carrinho'] = carrinho
+
+        # Caso o usuário esteja logado, salva os itens no banco de dados
+        if request.user.is_authenticated:
+            # Verifica se o item já está no carrinho do usuário
+            item, criado = ItemCarrinho.objects.get_or_create(
+                carrinho_id=carrinho,
+                produto_id=produto,
+                defaults={'quantidade': quantidade, 'preco': preco},
+            )
+            if not criado:
+                # Se o item já existia, atualiza a quantidade
+                item.quantidade += quantidade
+                item.preco_total = item.preco * item.quantidade
+                item.save()
 
         # Retorna uma resposta JSON
         return JsonResponse({'status': 'success', 'message': f'Produto "{produto.nome}" adicionado ao carrinho com sucesso!'})
@@ -43,19 +70,33 @@ def adicionar_ao_carrinho(request):
     return JsonResponse({'status': 'error', 'message': 'Método não permitido.'}, status=405)
 
 
+
 def visualizar_carrinho(request):
     if request.user.is_authenticated:
         # Obtenha ou crie o carrinho para o usuário autenticado
-        carrinho, criado = Carrinho.objects.get_or_create(cliente_id=request.user.id)
+        carrinho, criado = Carrinho.objects.get_or_create(cliente_id=request.user)
 
         # Filtra os itens do carrinho usando a instância do carrinho
         itens_carrinho = ItemCarrinho.objects.filter(carrinho_id=carrinho.id)
 
         # Calcula o total dos itens no carrinho
         total = sum(item.preco * item.quantidade for item in itens_carrinho)
+
     else:
-        itens_carrinho = []
-        total = 0
+        # Obtém o carrinho da sessão
+        carrinho_sessao = request.session.get('carrinho', {})
+
+        # Converte os itens da sessão em uma lista para exibir no template
+        itens_carrinho = [{
+            'produto_id': item_info['produto_id'],
+            'nome': item_info['nome'],
+            'preco': item_info['preco'],
+            'quantidade': item_info['quantidade'],
+            'preco_total': item_info['preco_total']
+        } for item_info in carrinho_sessao.values()]
+
+        # Calcula o total dos itens no carrinho da sessão
+        total = sum(item['preco_total'] for item in itens_carrinho)
 
     return render(request, 'carrinho.html', {
         'itens_carrinho': itens_carrinho,
@@ -118,3 +159,26 @@ def visualizar_pedidos(request):
         })
 
     return render(request, 'pedidos.html', {'pedidos_info': pedidos_info})
+
+@receiver(user_logged_in)
+def transferir_carrinho_sessao(sender, request, user, **kwargs):
+    carrinho_sessao = request.session.get('carrinho', {})
+
+    if carrinho_sessao:
+        carrinho, _ = Carrinho.objects.get_or_create(cliente_id=user)
+
+        for produto_id, detalhes in carrinho_sessao.items():
+            produto = get_object_or_404(Produtos, id=produto_id)
+            item, criado = ItemCarrinho.objects.get_or_create(
+                carrinho_id=carrinho,
+                produto_id=produto,
+                defaults={'quantidade': detalhes['quantidade'], 'preco': detalhes['preco']}
+            )
+
+            if not criado:
+                item.quantidade += detalhes['quantidade']
+                item.preco_total = item.preco * item.quantidade
+                item.save()
+
+        # Limpa o carrinho da sessão
+        request.session['carrinho'] = {}

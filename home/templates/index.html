@@ -76,9 +76,11 @@
                         <li class="nav-item">
                             <a href="{% url 'carrinho' %}" class="nav-link link text-black display-4">Carrinho</a>
                         </li>
+                        {% if user.is_authenticated %}
                         <li class="nav-item">
                             <a href="{% url 'pedidos' %}" class="nav-link link text-black display-4">Pedidos</a>
                         </li>
+                        {% endif %}
                     </div>
 
                     <!-- Botão de Sair à direita -->
