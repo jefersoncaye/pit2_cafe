@@ -56,6 +56,7 @@ def login(request):
             return redirect('home')
         else:
             # Credenciais inválidas
+            messages.get_messages(request).used = True
             messages.error(request, 'Email ou senha incorretos. Tente novamente.')
             return redirect('login')
 

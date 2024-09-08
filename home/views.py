@@ -141,8 +141,8 @@ def finalizar_pedido(request):
         return redirect('pedidos')  # Redireciona para uma página de confirmação de pedido
 
     except Carrinho.DoesNotExist:
-        messages.error(request, "Carrinho não encontrado!")
-        return redirect('home')
+        messages.error(request, "Carrinho não encontrado! É necessario logar no sistema")
+        return redirect('login')
 
 
 def visualizar_pedidos(request):
