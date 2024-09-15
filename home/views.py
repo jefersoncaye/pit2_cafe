@@ -69,6 +69,30 @@ def adicionar_ao_carrinho(request):
 
     return JsonResponse({'status': 'error', 'message': 'Método não permitido.'}, status=405)
 
+def remover_do_carrinho(request, item_id):
+    if request.method == 'POST':
+        if request.user.is_authenticated:
+            # Usuário autenticado: remove do banco de dados
+            try:
+                item = ItemCarrinho.objects.get(id=item_id)
+                item.delete()
+                return redirect('carrinho')
+            except ItemCarrinho.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'Item não encontrado no carrinho.'}, status=404)
+        else:
+            # Usuário não autenticado: remove da sessão
+            carrinho_sessao = request.session.get('carrinho', {})
+            if str(item_id) in carrinho_sessao:
+                del carrinho_sessao[str(item_id)]
+                request.session['carrinho'] = carrinho_sessao  # Atualiza a sessão
+                return redirect('carrinho')
+            else:
+                return JsonResponse({'status': 'error', 'message': 'Item não encontrado no carrinho.'}, status=404)
+
+    return JsonResponse({'status': 'error', 'message': 'Método não permitido.'}, status=405)
+
+
+
 
 
 def visualizar_carrinho(request):
