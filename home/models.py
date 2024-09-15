@@ -1,6 +1,10 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+import pytz
+
+brasilia_tz = pytz.timezone('America/Sao_Paulo')
+
 
 # Create your models here.
 

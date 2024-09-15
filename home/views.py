@@ -56,7 +56,7 @@ def adicionar_ao_carrinho(request):
             item, criado = ItemCarrinho.objects.get_or_create(
                 carrinho_id=carrinho,
                 produto_id=produto,
-                defaults={'quantidade': quantidade, 'preco': preco},
+                defaults={'quantidade': quantidade, 'preco': preco, 'preco_total': float(preco * quantidade)},
             )
             if not criado:
                 # Se o item já existia, atualiza a quantidade
