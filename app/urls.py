@@ -18,10 +18,12 @@ from django.contrib import admin
 from django.conf.urls.static import static
 from django.conf import settings
 from django.urls import path, include
+from home.views import redirecionar_home
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("home/", include('home.urls')),
     path("clientes/", include('clientes.urls')),
+    path('', redirecionar_home, name='redirecionar_home'),
 ]
 
 

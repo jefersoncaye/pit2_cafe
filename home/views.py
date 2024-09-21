@@ -1,9 +1,7 @@
 from django.shortcuts import render
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import redirect
 from django.contrib import messages
-from .models import Produtos, Carrinho, ItemCarrinho, Pedido, ItemPedido
-from django.http import JsonResponse
-from django.utils import timezone
+from .models import  Pedido, ItemPedido
 from django.dispatch import receiver
 from django.contrib.auth.signals import user_logged_in
 
@@ -184,6 +182,7 @@ def visualizar_pedidos(request):
 
     return render(request, 'pedidos.html', {'pedidos_info': pedidos_info})
 
+
 @receiver(user_logged_in)
 def transferir_carrinho_sessao(sender, request, user, **kwargs):
     carrinho_sessao = request.session.get('carrinho', {})
@@ -193,10 +192,15 @@ def transferir_carrinho_sessao(sender, request, user, **kwargs):
 
         for produto_id, detalhes in carrinho_sessao.items():
             produto = get_object_or_404(Produtos, id=produto_id)
+
+            # Calcula o preço total com base no preço unitário e quantidade
+            preco_total = detalhes['preco'] * detalhes['quantidade']
+
+            # Tenta obter o item ou cria um novo, atribuindo corretamente o preco_total
             item, criado = ItemCarrinho.objects.get_or_create(
                 carrinho_id=carrinho,
                 produto_id=produto,
-                defaults={'quantidade': detalhes['quantidade'], 'preco': detalhes['preco']}
+                defaults={'quantidade': detalhes['quantidade'], 'preco': detalhes['preco'], 'preco_total': preco_total}
             )
 
             if not criado:
@@ -206,3 +210,6 @@ def transferir_carrinho_sessao(sender, request, user, **kwargs):
 
         # Limpa o carrinho da sessão
         request.session['carrinho'] = {}
+
+def redirecionar_home(request):
+    return redirect('home')
