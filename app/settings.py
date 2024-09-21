@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,7 +27,7 @@ SECRET_KEY = "django-insecure-opu4%cru)*v^gc4e*l5r=pw0yft@nzcd(^!mb^%nkag_(!ncq%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', '.vercel.app']
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -80,14 +81,7 @@ WSGI_APPLICATION = "app.wsgi.application"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "cafe",
-        "USER": "postgres",
-        "PASSWORD": "masterkey",
-        "HOST": "LOCALHOST",
-        "PORT": "5432",
-    }
+    "default": dj_database_url.parse('postgresql://cafe_pid_2_user:LIRPkJgStCtKZyvNcvCm5kMwT8YxMtv7@dpg-crnj11qj1k6c7399rr40-a.oregon-postgres.render.com/cafe_pid_2')
 }
 
 
