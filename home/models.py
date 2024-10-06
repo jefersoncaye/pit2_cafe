@@ -13,7 +13,7 @@ class Produtos(models.Model):
     descricao = models.TextField()
     preco = models.DecimalField(max_digits=10, decimal_places=2)
     quantidade_estoque = models.IntegerField()
-    imagem = models.ImageField(upload_to='produtos/')
+    imagem = models.URLField(blank=True, null=True)
 
     class Meta:
         db_table = 'produtos'

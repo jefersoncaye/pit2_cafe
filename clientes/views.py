@@ -3,11 +3,8 @@ from django.http import HttpResponseRedirect
 from django.contrib import messages
 from django.urls import reverse
 from .models import Clientes
-from home.views import home
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
-from django.contrib.auth import login as auth_login
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login as auth_login
 
 
